@@ -1,0 +1,132 @@
+---
+title: "Analysing averages of exponential distributions"
+author: "FD"
+date: "11 Mai 2016"
+output: pdf_document
+references:
+- id:	wikipedia_exponentialdist
+  title: Exponential distribution
+  author:
+    family: Wikipedia - Exponential distribution
+  issued:
+    year: 2016
+  url : https://en.wikipedia.org/w/index.php?title=Exponential_distribution&oldid=716355350
+  note : [Online; accessed 11-May-2016]
+- id: wikipedia_clt
+  author:
+    family: Wikipedia - Central limit theorem
+  title: Central limit theorem
+  issued:
+    year: 2016
+  url: https://en.wikipedia.org/w/index.php?title=Central_limit_theorem&oldid=717005743
+  note: [Online; accessed 11-May-2016]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This analysis is about averages of exponential distributions. The data is artificially generated. Each observation is the average over 40 random numbers drawn from an exponential distribution with $\lambda$ equal to 0.2. 1000 observations are used.
+
+## Summary
+
+It was found that the distribution of the averages of 40 random numbers drawn from an exponential distribution behaves (to a certain extend) like a normal distribution. This is, as expected, in accordance with the central limit theorem.
+
+## Background
+
+The  exponential distribution function is defined as: $\lambda e^{-\lambda x}$ and be 0 for $x<0$.
+
+The expected value of the exponential distribution is $1/\lambda$ as well as the standard deviation.
+
+The standard deviation of the mean of random variables is the standard deviation of the random variables normalized by the sample size: $\sigma(\bar{X})=\sigma/\sqrt{n}$. For the mean of 40 variables with a standard deviation of $1/\lambda$, $\lambda=0.2$ this yields:
+
+```{r}
+lambda<-0.2
+sigma<-lambda
+sigmaMuExp<-1/0.2/sqrt(40)
+muExp<-1/lambda
+sprintf("Expected mean: %f, expected standard deviation: %f", muExp, sigmaMuExp)
+```
+
+According to the central limit theorem, the mean of values drawn from a suitable distribution should be **approximately** normally distributed (you will see below, how good the approximation really is). Thus we would expect something normally distributed around $5$ with a standard deviation of approx. $0.8$.
+
+## Simulations
+
+The data were simulated by 1000 runs of randomly drawing 40 samples from the exponential distribution. The distribution of the observed means was calculated using the R built-in hist function.
+
+```{r, results='hide'}
+randomMeans=NULL
+for (i in 1 : 1000) randomMeans = c(randomMeans, mean(rexp(n=40, rate = 0.2)))
+h<-hist(randomMeans, plot = F)
+df<-data.frame(x=h$mids, probability=h$density)
+```
+
+## Results 
+
+### Statistics of observed means
+
+The average and standard deviation of all the observations is:
+
+```{r}
+muObs=mean(randomMeans)
+sigmaMuObs=sd(randomMeans)
+sprintf("Observed mean: %f, observed standard deviation: %f", muObs, sigmaMuObs)
+```
+
+These values are quite close to the theoretical values of $5$ and $0.79$ respectively but do not match exactly. More observations (data not shown) improve the situation a little bit.
+
+### Distribution of observed means
+
+Based on the observed data, a gaussian model was fitted. The start point for the optimization was the mean according to $1/\lambda$, the expected standard deviation of the sample mean of approx. $0.79$ and an estimate for the value of the normal distribution around $0$.
+
+```{r}
+# See: http://stackoverflow.com/a/15883835
+g = function(p){
+  d = p[3]*dnorm(df$x,mean=p[1],sd=p[2])
+  sum((d-df$probability)^2)
+}
+o<-optim(c(5,0.79,0.5),g)
+```
+
+The parameters obtained from the optimization are:
+
+```{r}
+sprintf(
+  "Mean: %f, standard deviation: %f, scale: %f of the gaussian fit",
+  o$par[1],
+  o$par[2],
+  o$par[3]
+)
+```
+
+On the first glance, these values look quite good and are close to the expected values. A simple Kolmogorov-Smirnov-Test for normal distribution verifies it:
+
+```{r, warning=F, message=F}
+library(ks)
+ks.test(randomMeans, "pnorm", mean=5, sd=0.79)$p.value
+```
+
+The p-value is quite high and thus the null hypothesis (the mean is normally distributed) is not rejected.
+
+Finally, lets look at the graph:
+
+```{r}
+library(ggplot2)
+
+est<-function(x) o$par[3]/o$par[2]/sqrt(2*pi)*exp(-1/2*(x-o$par[1])^2/o$par[2]^2)
+df$est=est(df$x)
+
+print(
+  ggplot()+ geom_bar(data=df, aes(x=x, y=probability, colour="Data"), stat="identity")+
+    geom_point(data=df, aes(x=x, y=est, colour="Gaussian fit"))+
+    geom_point(data=df, aes(x=df$x, y=dnorm(df$x, mean = 5, sd=0.8),
+                            colour="Normal distribution")) +
+    theme(legend.position = "bottom")+
+    scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+    labs(title="Observed, fitted and normal distribution of means")
+)
+```
+
+It looks quite normal, as the above test, the approx. equal standard deviations and means and the central limit theorem suggests.
