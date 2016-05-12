@@ -123,4 +123,15 @@ print(
 )
 ```
 
-It looks quite normal, as the above test, the approx. equal standard deviations and means and the central limit theorem suggests.
+It looks quite normal, as the values of standard deviations and means and the central limit theorem suggests. Interestingly, a Kolmogorow-Smirnow-Test gives ambiguous results depending on the used sample (data not shown), indicating, that the distribution is not so normal like it looks like. A quantile plot shows the deviations especially at the tails (see appendix).
+
+\newpage
+
+## Apendix
+
+Quantile plot of the mean distribution shows deviations especially at the tails.
+
+```{r}
+qqnorm(randomMeans, main="Quantile plot of means compared to normal distribution quantiles")
+qqline(randomMeans)
+```

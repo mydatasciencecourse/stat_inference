@@ -87,7 +87,7 @@ print(supp)
 print(dose)
 ```
 
-The confidence intervals of the different doses are not overlapping indicating an possitive effect of dose on odentoblast length. The confidence intervals of the supplement types are overlapping indicating no (clear) separation between the different supplement types.
+The confidence intervals of the different doses are not overlapping indicating an possitive effect of dose on odentoblast length. The confidence intervals of the supplement types are overlapping indicating no (clear) separation between the different supplement types. See appendix for details.
 
 \newpage
 
