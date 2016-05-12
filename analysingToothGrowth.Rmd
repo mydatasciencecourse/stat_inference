@@ -1,0 +1,119 @@
+---
+title: "Analysing tooth growth data set in R"
+author: "FD"
+date: "12 Mai 2016"
+output: pdf_document
+references:
+- id:	crampton
+  title: The growth of the odontoblast of the incisor teeth as a criterion of vitamin C intake of the guinea pig
+  container-title: The Journal of Nutrition
+  issue: 5
+  volume: 33
+  page: 491-504
+  author:
+    family: Crampton
+  issued:
+    year: 1947
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This analysis is about the ToothGrowth data set contained in R. It analyses the effect of vitamin C in different doses and the effect of the supplement type on the odontoblast length of guinea pigs using 95% t-confidence intervals.
+
+## Summary
+
+The hypothesis that the dose of vitamin C has no effect on the length of odontoblasts in guinea pigs is rejected, there is no overlap of the 95% confidence intervals. There is a possitive effect of higher doses on odontoblast length.
+
+On the other hand, the data show no clear indication for an effect of the supplement type on the odontoblasts length.
+
+## Background
+
+See _?ToothGrowth_ in R for the full reference of the used data set. See Crampton [-@crampton] for the original analysis.
+
+The data set contains the length of the odontoblasts for different doses and supplement types of vitamin C. There are 3 variables: len (length), dose (Dose of vitamin C in milligrams/day, 3 values), supp (supplement type, 2 values). There are 60 observations, which are equally distributed among the groups spanned by dose and supplement type:
+
+```{r, message=F, warning=F}
+library(dplyr)
+table(select(ToothGrowth, supp, dose))
+```
+
+The variables are distributed in the following way:
+
+```{r}
+summary(ToothGrowth)
+```
+
+## Results
+
+Lets assume, that both dimensions (dose and supplement type) are uncorrelated and examine both separately. The subgroups ("dose" x "supplement type") are neglected here.
+
+First, prepare the data:
+
+```{r}
+library(reshape2)
+molten<-melt(ToothGrowth, id.vars=c("supp", "dose"))
+createList<-function(dimension){
+  
+  cast<-function(func){
+    functionNameAsString<-deparse(substitute(func))
+    f<-as.formula(sprintf("%s ~ \"%s\"", dimension, functionNameAsString))
+    dcast(molten, f, func)
+  }
+  
+  list(cast(length), cast(mean), cast(sd))
+}
+
+supp<-Reduce(function(x, y) merge(x, y, all=T), createList("supp"))
+dose<-Reduce(function(x, y) merge(x, y, all=T), createList("dose"))
+```
+
+Now, lets calculate the confidence intervals (95% t confidence intervals) of the mean for each of groups:
+
+```{r}
+assignConf<-function(var){
+  var$confMin<-var$mean-qt(0.95, var$length-1)*var$sd/sqrt(var$length)
+  var$confMax<-var$mean+qt(0.95, var$length-1)*var$sd/sqrt(var$length)
+  
+  var
+}
+supp<-assignConf(supp)
+dose<-assignConf(dose)
+
+print(supp)
+print(dose)
+```
+
+The confidence intervals of the different doses are not overlapping indicating an possitive effect of dose on odentoblast length. The confidence intervals of the supplement types are overlapping indicating no (clear) separation between the different supplement types.
+
+\newpage
+
+## Appendix
+
+Lets have a look at the distribution of the confidence intervals:
+
+```{r, out.width='400pt'}
+library(ggplot2)
+factors<-factor(supp$supp)
+ggplot(supp, aes(color=factors))+
+  coord_flip()+
+  geom_linerange(data=supp, aes(ymin=confMin, ymax=confMax, factors))+
+  labs(x="Supplement type", y="Odontoblasts length",
+       title="Effect of supplement type on odontoblast length")+
+  scale_color_discrete(name="Supplement type")
+
+factors<-factor(dose$dose)
+ggplot(dose, aes(color=factors))+
+  coord_flip()+
+  geom_linerange(data=dose, aes(ymin=confMin, ymax=confMax, factors))+
+  labs(x="Dose", y="Odontoblasts length",
+       title="Effect of vitamin c dose on odontoblast length")+
+  scale_color_discrete(name="Dose")
+```
+
+\newpage
+
+## Reference

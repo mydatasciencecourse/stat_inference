@@ -57,6 +57,7 @@ According to the central limit theorem, the mean of values drawn from a suitable
 The data were simulated by 1000 runs of randomly drawing 40 samples from the exponential distribution. The distribution of the observed means was calculated using the R built-in hist function.
 
 ```{r, results='hide'}
+set.seed(42)
 randomMeans=NULL
 for (i in 1 : 1000) randomMeans = c(randomMeans, mean(rexp(n=40, rate = 0.2)))
 h<-hist(randomMeans, plot = F)
@@ -101,14 +102,7 @@ sprintf(
 )
 ```
 
-On the first glance, these values look quite good and are close to the expected values. A simple Kolmogorov-Smirnov-Test for normal distribution verifies it:
-
-```{r, warning=F, message=F}
-library(ks)
-ks.test(randomMeans, "pnorm", mean=5, sd=0.79)$p.value
-```
-
-The p-value is quite high and thus the null hypothesis (the mean is normally distributed) is not rejected.
+On the first glance, these values look quite good and are close to the expected values.
 
 Finally, lets look at the graph:
 
